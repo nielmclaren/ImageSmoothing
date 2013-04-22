@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofUtils.h"
+#include "ofxCv.h"
+#include "vector.h"
 
 class testApp : public ofBaseApp {
 	public:
@@ -18,7 +21,9 @@ class testApp : public ofBaseApp {
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 	
-	ofImage image;
+	ofImage input;
+	ofImage output;
+	int imageWidth, imageHeight;
 	unsigned char* pixels;
 	int mouseY;
 };

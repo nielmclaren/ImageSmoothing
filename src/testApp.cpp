@@ -1,8 +1,20 @@
 #include "testApp.h"
 
+using namespace ofxCv;
+using namespace cv;
+
 void testApp::setup() {
-	image.loadImage("input.png");
-	image.setImageType(OF_IMAGE_GRAYSCALE);
+	ofEnableAlphaBlending();
+	
+	input.loadImage("input.png");
+	input.setImageType(OF_IMAGE_GRAYSCALE);
+	imageWidth = input.width;
+	imageHeight = input.height;
+	
+	ofPixels p;
+	p.setFromPixels(input.getPixels(), imageWidth, imageHeight, OF_IMAGE_GRAYSCALE);
+	blur(p, 100);
+	output.setFromPixels(p);
 	
 	mouseY = 0;
 }
@@ -13,16 +25,32 @@ void testApp::update() {
 void testApp::draw() {
 	ofBackground(0);
 	ofSetColor(255, 255, 255);
-	image.draw(0, 0);
+	input.draw(0, 0);
+	output.draw(imageWidth, 0);
 	
+	// Horizontal selection line.
 	ofSetColor(255, 0, 0);
-	ofLine(0, mouseY, image.width, mouseY);
+	ofLine(0, mouseY, imageWidth, mouseY);
+	ofSetColor(255);
+	ofLine(imageWidth, mouseY, imageWidth, mouseY);
 	
+	// Draw bar chart.
 	unsigned char p;
-	pixels = image.getPixels();
-	for (int x = 0; x < image.width; x++) {
-		p = pixels[mouseY * image.width + x];
-		ofLine(x, image.height, x, image.height - p);
+	
+	// Draw white bars from output image.
+	ofSetColor(255, 200);
+	pixels = output.getPixels();
+	for (int x = 0; x < imageWidth; x++) {
+		p = pixels[mouseY * imageWidth + x];
+		ofLine(x, imageHeight, x, imageHeight - p);
+	}
+	
+	// Draw red bars from input image.
+	ofSetColor(255, 0, 0, 200);
+	pixels = input.getPixels();
+	for (int x = 0; x < imageWidth; x++) {
+		p = pixels[mouseY * imageWidth + x];
+		ofLine(x, imageHeight, x, imageHeight - p);
 	}
 }
 
