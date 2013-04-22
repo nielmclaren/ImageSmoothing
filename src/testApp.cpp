@@ -24,7 +24,7 @@ void testApp::setup() {
 	p.setFromPixels(input.getPixels(), imageWidth, imageHeight, OF_IMAGE_GRAYSCALE);
 	blur(p, 100);
 	output.setFromPixels(p);
-	 */
+	*/
 	
 	mouseY = 0;
 }
@@ -42,7 +42,7 @@ void testApp::draw() {
 	ofSetColor(255, 0, 0);
 	ofLine(0, mouseY, imageWidth, mouseY);
 	ofSetColor(255);
-	ofLine(imageWidth, mouseY, imageWidth, mouseY);
+	ofLine(imageWidth, mouseY, 2 * imageWidth, mouseY);
 	
 	// Draw bar chart.
 	unsigned char p;
@@ -113,6 +113,10 @@ void testApp::dragEvent(ofDragInfo dragInfo) {
 //
 // Stack Blur Algorithm by Mario Klingemann <mario@quasimondo.com>
 //
+// NOTE: I've abominated this algorithm to suit my particular needs:
+// switched to grayscale and ignoring black pixels as they represent
+// missing depth information.
+//
 void testApp::stackBlur(unsigned char* pix, int w, int h, int radius) {
 	if (radius < 1) {
 		return;
@@ -122,10 +126,8 @@ void testApp::stackBlur(unsigned char* pix, int w, int h, int radius) {
 	int wh=w*h;
 	int div=radius+radius+1;
 	
-	int r[wh];
 	int g[wh];
-	int b[wh];
-	int rsum,gsum,bsum,x,y,i,p,yp,yi,yw;
+	int gsum,x,y,i,p,yp,yi,yw;
 	int vmin[max(w,h)];
 	
 	int divsum=(div+1)>>1;
@@ -137,114 +139,85 @@ void testApp::stackBlur(unsigned char* pix, int w, int h, int radius) {
 	
 	yw=yi=0;
 	
-	int stack[div][3];
+	int stack[div];
 	int stackpointer;
 	int stackstart;
 	int* sir;
 	int rbs;
 	int r1=radius+1;
-	int routsum,goutsum,boutsum;
-	int rinsum,ginsum,binsum;
+	int goutsum;
+	int ginsum;
 	
 	for (y=0;y<h;y++){
-		rinsum=ginsum=binsum=routsum=goutsum=boutsum=rsum=gsum=bsum=0;
+		ginsum=goutsum=gsum=divsum=0;
 		for(i=-radius;i<=radius;i++){
 			p=pix[yi+min(wm,max(i,0))];
-			sir=stack[i+radius];
-			sir[0]=(p & 0xff0000)>>16;
-			sir[1]=(p & 0x00ff00)>>8;
-			sir[2]=(p & 0x0000ff);
+			sir=&stack[i+radius];
+			*sir = p;
 			rbs=r1-abs(i);
-			rsum+=sir[0]*rbs;
-			gsum+=sir[1]*rbs;
-			bsum+=sir[2]*rbs;
+			gsum+=(*sir)*rbs;
+			divsum+=rbs;
 			if (i>0){
-				rinsum+=sir[0];
-				ginsum+=sir[1];
-				binsum+=sir[2];
+				ginsum+=*sir;
 			} else {
-				routsum+=sir[0];
-				goutsum+=sir[1];
-				boutsum+=sir[2];
+				goutsum+=*sir;
 			}
 		}
-		stackpointer=radius;
 		
+		stackpointer=radius;
 		for (x=0;x<w;x++){
+			g[yi]=divsum > 0 ? gsum/divsum : 0;
 			
-			r[yi]=dv[rsum];
-			g[yi]=dv[gsum];
-			b[yi]=dv[bsum];
-			
-			rsum-=routsum;
 			gsum-=goutsum;
-			bsum-=boutsum;
 			
 			stackstart=stackpointer-radius+div;
-			sir=stack[stackstart%div];
+			sir=&stack[stackstart%div];
 			
-			routsum-=sir[0];
-			goutsum-=sir[1];
-			boutsum-=sir[2];
+			goutsum-=*sir;
 			
 			if(y==0){
 				vmin[x]=min(x+radius+1,wm);
 			}
 			p=pix[yw+vmin[x]];
 			
-			sir[0]=(p & 0xff0000)>>16;
-			sir[1]=(p & 0x00ff00)>>8;
-			sir[2]=(p & 0x0000ff);
+			*sir = p;
 			
-			rinsum+=sir[0];
-			ginsum+=sir[1];
-			binsum+=sir[2];
+			ginsum+=*sir;
 			
-			rsum+=rinsum;
 			gsum+=ginsum;
-			bsum+=binsum;
 			
 			stackpointer=(stackpointer+1)%div;
-			sir=stack[(stackpointer)%div];
+			sir=&stack[(stackpointer)%div];
 			
-			routsum+=sir[0];
-			goutsum+=sir[1];
-			boutsum+=sir[2];
+			goutsum+=*sir;
 			
-			rinsum-=sir[0];
-			ginsum-=sir[1];
-			binsum-=sir[2];
+			ginsum-=*sir;
 			
 			yi++;
 		}
 		yw+=w;
 	}
+	
+	
 	for (x=0;x<w;x++){
-		rinsum=ginsum=binsum=routsum=goutsum=boutsum=rsum=gsum=bsum=0;
+		ginsum=goutsum=gsum=divsum=0;
 		yp=-radius*w;
 		for(i=-radius;i<=radius;i++){
 			yi=max(0,yp)+x;
 			
-			sir=stack[i+radius];
+			sir=&stack[i+radius];
 			
-			sir[0]=r[yi];
-			sir[1]=g[yi];
-			sir[2]=b[yi];
+			*sir = g[yi];
 			
 			rbs=r1-abs(i);
 			
-			rsum+=r[yi]*rbs;
 			gsum+=g[yi]*rbs;
-			bsum+=b[yi]*rbs;
+			divsum+=rbs;
 			
 			if (i>0){
-				rinsum+=sir[0];
-				ginsum+=sir[1];
-				binsum+=sir[2];
+				ginsum+=*sir;
 			} else {
-				routsum+=sir[0];
-				goutsum+=sir[1];
-				boutsum+=sir[2];
+				goutsum+=*sir;
 			}
 			
 			if(i<hm){
@@ -254,46 +227,32 @@ void testApp::stackBlur(unsigned char* pix, int w, int h, int radius) {
 		yi=x;
 		stackpointer=radius;
 		for (y=0;y<h;y++){
-			pix[yi]=0xff000000 | (dv[rsum]<<16) | (dv[gsum]<<8) | dv[bsum];
-			
-			rsum-=routsum;
+			pix[yi]=divsum > 0 ? gsum/divsum : 0;
+		
 			gsum-=goutsum;
-			bsum-=boutsum;
 			
 			stackstart=stackpointer-radius+div;
-			sir=stack[stackstart%div];
+			sir=&stack[stackstart%div];
 			
-			routsum-=sir[0];
-			goutsum-=sir[1];
-			boutsum-=sir[2];
+			goutsum-=*sir;
 			
 			if(x==0){
 				vmin[y]=min(y+r1,hm)*w;
 			}
 			p=x+vmin[y];
 			
-			sir[0]=r[p];
-			sir[1]=g[p];
-			sir[2]=b[p];
+			*sir=g[p];
 			
-			rinsum+=sir[0];
-			ginsum+=sir[1];
-			binsum+=sir[2];
+			ginsum+=*sir;
 			
-			rsum+=rinsum;
 			gsum+=ginsum;
-			bsum+=binsum;
 			
 			stackpointer=(stackpointer+1)%div;
-			sir=stack[stackpointer];
+			sir=&stack[stackpointer];
+		
+			goutsum+=*sir;
 			
-			routsum+=sir[0];
-			goutsum+=sir[1];
-			boutsum+=sir[2];
-			
-			rinsum-=sir[0];
-			ginsum-=sir[1];
-			binsum-=sir[2];
+			ginsum-=*sir;
 			
 			yi+=w;
 		}
