@@ -61,7 +61,7 @@ void testApp::keyReleased(int key) {
 }
 
 void testApp::mouseMoved(int x, int y) {
-	mouseY = y;
+	mouseY = MAX(0, MIN(imageHeight, y));
 }
 
 void testApp::mouseDragged(int x, int y, int button) {
