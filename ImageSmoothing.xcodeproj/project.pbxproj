@@ -77,7 +77,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		03033F981725B9A20006AEEA /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		03033F9C1725B9A20006AEEA /* Calibration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Calibration.h; sourceTree = "<group>"; };
 		03033F9D1725B9A20006AEEA /* ContourFinder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ContourFinder.h; sourceTree = "<group>"; };
 		03033F9E1725B9A20006AEEA /* Distance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Distance.h; sourceTree = "<group>"; };
@@ -266,7 +265,6 @@
 		03033F971725B9A20006AEEA /* libs */ = {
 			isa = PBXGroup;
 			children = (
-				03033F981725B9A20006AEEA /* .gitignore */,
 				03033F991725B9A20006AEEA /* ofxCv */,
 			);
 			path = libs;
