@@ -11,20 +11,26 @@ void testApp::setup() {
 	imageWidth = input.width;
 	imageHeight = input.height;
 	
-	unsigned char* p = input.getPixels();
-	unsigned char* q = new unsigned char[imageWidth * imageHeight];
-	for (int i = 0; i < imageWidth * imageHeight; i++) {
-		q[i] = p[i];
-	}
-	stackBlur(q, imageWidth, imageHeight, 10);
-	output.setFromPixels(q, imageWidth, imageHeight, OF_IMAGE_GRAYSCALE);
-	
-	/*
 	ofPixels p;
+	unsigned char* inPixels;
+	unsigned char* outPixels;
+	
 	p.setFromPixels(input.getPixels(), imageWidth, imageHeight, OF_IMAGE_GRAYSCALE);
-	blur(p, 100);
+	
+	for (int pass = 0; pass < 10; pass++) {
+		blur(p, 200);
+		
+		// Only use blurred pixels for the black regions.
+		inPixels = input.getPixels();
+		outPixels = p.getPixels();
+		for (int i = 0; i < imageWidth * imageHeight; i++) {
+			outPixels[i] = inPixels[i] <= 0 ? outPixels[i] : inPixels[i];
+		}
+		
+		p.setFromPixels(outPixels, imageWidth, imageHeight, OF_IMAGE_GRAYSCALE);
+	}
+	
 	output.setFromPixels(p);
-	*/
 	
 	mouseY = 0;
 }
@@ -90,171 +96,4 @@ void testApp::gotMessage(ofMessage msg) {
 }
 
 void testApp::dragEvent(ofDragInfo dragInfo) {
-}
-
-
-
-
-// This is a compromise between Gaussian Blur and Box blur
-// It creates much better looking blurs than Box Blur, but is
-// 7x faster than my Gaussian Blur implementation.
-//
-// I called it Stack Blur because this describes best how this
-// filter works internally: it creates a kind of moving stack
-// of colors whilst scanning through the image. Thereby it
-// just has to add one new block of color to the right side
-// of the stack and remove the leftmost color. The remaining
-// colors on the topmost layer of the stack are either added on
-// or reduced by one, depending on if they are on the right or
-// on the left side of the stack.
-//
-// If you are using this algorithm in your code please add
-// the following line:
-//
-// Stack Blur Algorithm by Mario Klingemann <mario@quasimondo.com>
-//
-// NOTE: I've abominated this algorithm to suit my particular needs:
-// switched to grayscale and ignoring black pixels as they represent
-// missing depth information.
-//
-void testApp::stackBlur(unsigned char* pix, int w, int h, int radius) {
-	if (radius < 1) {
-		return;
-	}
-	int wm=w-1;
-	int hm=h-1;
-	int wh=w*h;
-	int div=radius+radius+1;
-	
-	int g[wh];
-	int gsum,x,y,i,p,yp,yi,yw;
-	int vmin[max(w,h)];
-	
-	int divsum=(div+1)>>1;
-	divsum*=divsum;
-	int dv[256*divsum];
-	for (i=0;i<256*divsum;i++){
-		dv[i]=(i/divsum);
-	}
-	
-	yw=yi=0;
-	
-	int stack[div];
-	int stackpointer;
-	int stackstart;
-	int* sir;
-	int rbs;
-	int r1=radius+1;
-	int goutsum;
-	int ginsum;
-	
-	for (y=0;y<h;y++){
-		ginsum=goutsum=gsum=divsum=0;
-		for(i=-radius;i<=radius;i++){
-			p=pix[yi+min(wm,max(i,0))];
-			sir=&stack[i+radius];
-			*sir = p;
-			rbs=r1-abs(i);
-			gsum+=(*sir)*rbs;
-			divsum+=rbs;
-			if (i>0){
-				ginsum+=*sir;
-			} else {
-				goutsum+=*sir;
-			}
-		}
-		
-		stackpointer=radius;
-		for (x=0;x<w;x++){
-			g[yi]=divsum > 0 ? gsum/divsum : 0;
-			
-			gsum-=goutsum;
-			
-			stackstart=stackpointer-radius+div;
-			sir=&stack[stackstart%div];
-			
-			goutsum-=*sir;
-			
-			if(y==0){
-				vmin[x]=min(x+radius+1,wm);
-			}
-			p=pix[yw+vmin[x]];
-			
-			*sir = p;
-			
-			ginsum+=*sir;
-			
-			gsum+=ginsum;
-			
-			stackpointer=(stackpointer+1)%div;
-			sir=&stack[(stackpointer)%div];
-			
-			goutsum+=*sir;
-			
-			ginsum-=*sir;
-			
-			yi++;
-		}
-		yw+=w;
-	}
-	
-	
-	for (x=0;x<w;x++){
-		ginsum=goutsum=gsum=divsum=0;
-		yp=-radius*w;
-		for(i=-radius;i<=radius;i++){
-			yi=max(0,yp)+x;
-			
-			sir=&stack[i+radius];
-			
-			*sir = g[yi];
-			
-			rbs=r1-abs(i);
-			
-			gsum+=g[yi]*rbs;
-			divsum+=rbs;
-			
-			if (i>0){
-				ginsum+=*sir;
-			} else {
-				goutsum+=*sir;
-			}
-			
-			if(i<hm){
-				yp+=w;
-			}
-		}
-		yi=x;
-		stackpointer=radius;
-		for (y=0;y<h;y++){
-			pix[yi]=divsum > 0 ? gsum/divsum : 0;
-		
-			gsum-=goutsum;
-			
-			stackstart=stackpointer-radius+div;
-			sir=&stack[stackstart%div];
-			
-			goutsum-=*sir;
-			
-			if(x==0){
-				vmin[y]=min(y+r1,hm)*w;
-			}
-			p=x+vmin[y];
-			
-			*sir=g[p];
-			
-			ginsum+=*sir;
-			
-			gsum+=ginsum;
-			
-			stackpointer=(stackpointer+1)%div;
-			sir=&stack[stackpointer];
-		
-			goutsum+=*sir;
-			
-			ginsum-=*sir;
-			
-			yi+=w;
-		}
-	}
 }
