@@ -21,8 +21,8 @@ public:
 	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
 	
-	void stackBlur(ofImage image, int radius);
-	void stackBlur(unsigned char* pixels, int width, int height, int radius);
+	/** Custom blur method that ignores values below the given threshold. */
+	void threshBlur(unsigned char* src, unsigned char* dst, int w, int h, int radius, int threshold);
 	
 	ofImage input;
 	ofImage output;
